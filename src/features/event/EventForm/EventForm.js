@@ -1,8 +1,14 @@
 import React, { Component } from 'react'
+import { connect } from 'react-redux';
 import { Segment, Form, Button } from 'semantic-ui-react';
+import { Link } from 'react-router-dom';
+import { createEvent, updateEvent } from '../eventActions';
+import cuid from 'cuid';
 
-class EventForm extends Component {
-  state = {
+const mapState = (state, ownProps) => {
+  const eventId = ownProps.match.params.id;
+
+  let event = {
     title: '',
     date: '',
     city: '',
@@ -10,8 +16,23 @@ class EventForm extends Component {
     hostedBy: ''
   }
 
+  if (eventId && state.events.length > 0) {
+    event = state.events.filter(event => event.id === eventId)[0]
+  }
+
+  return { event }
+}
+
+const actions = {
+  createEvent,
+  updateEvent
+}
+
+class EventForm extends Component {
+  state = { ...this.props.event }
+
   componentDidMount() {
-    if(this.props.selectedEvent) {
+    if (this.props.selectedEvent) {
       this.setState({
         ...this.props.selectedEvent
       })
@@ -20,21 +41,28 @@ class EventForm extends Component {
 
   handleFormSubmit = evt => {
     evt.preventDefault();
-    if(this.state.id) {
+    if (this.state.id) {
       this.props.updateEvent(this.state);
+      this.props.history.push(`/events/${this.state.id}`);
     } else {
-      this.props.createEvent(this.state);
+      const newEvent = {
+        ...this.state,
+        id: cuid(),
+        hostPhotoURL: 'assets/user.png'
+      }
+
+      this.props.createEvent(newEvent);
+      this.props.history.push(`/events`);
     }
   }
 
-  handleInputChange = ({target: {name, value}}) => {
+  handleInputChange = ({ target: { name, value } }) => {
     this.setState({
       [name]: value
     })
   }
 
   render() {
-    const { cancelFormOpen } = this.props;
     const { title, date, city, venue, hostedBy } = this.state;
 
     return (
@@ -84,11 +112,11 @@ class EventForm extends Component {
           <Button positive type="submit">
             Submit
           </Button>
-          <Button onClick={cancelFormOpen} type="button">Cancel</Button>
+          <Button as={Link} to='/events' type="button">Cancel</Button>
         </Form>
       </Segment>
     )
   }
 }
 
-export default EventForm;
+export default connect(mapState, actions)(EventForm);
